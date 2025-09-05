@@ -1,251 +1,226 @@
-# Co-Lending Interest Rate Management System
+# Co-Lending FastAPI Backend
 
-A complete production-ready system for calculating blended rates, optimizing profits for both originators and lenders, and implementing weighted random lender selection algorithms for co-lending scenarios.
+A FastAPI backend for co-lending loan allocation using weighted random selection algorithms and dual profit optimization.
 
-## 🚀 Features
+## Features
 
-- **Blended Interest Rate Calculations**: Precise calculation using weighted averages
-- **Profit Optimization**: Maximize combined profits while ensuring both parties are profitable
-- **Weighted Random Lender Selection**: Algorithm based on allocated limits and approval rates
-- **Complete Loan Processing Pipeline**: End-to-end workflow from request to final terms
-- **Performance Optimized**: <100ms processing time per loan
-- **Mathematical Validation**: All formulas tested against specified requirements
+- **Single Loan Allocation**: Allocate individual loans to optimal partners using weighted random selection
+- **Batch Processing**: Upload and process Excel files with multiple loans
+- **Partner Management**: Manage lending partners and co-lending partnerships  
+- **Mathematical Accuracy**: Implements precise co-lending formulas from specifications
+- **Performance Optimized**: Sub-100ms allocation performance with caching
+- **SQLite Database**: Embedded database for easy deployment
 
-## 📊 Core Mathematical Formulas
+## Quick Start
 
-### 1. Blended Interest Rate
+### 1. Install Dependencies
+
+```bash
+pip install -r requirements.txt
+```
+
+### 2. Run the Server
+
+```bash
+python run_server.py
+```
+
+The server will start at `http://localhost:8000`
+
+### 3. Access Documentation
+
+- **Interactive API Docs**: http://localhost:8000/docs
+- **ReDoc Documentation**: http://localhost:8000/redoc
+
+## API Endpoints
+
+### Core Allocation
+
+- `POST /api/allocate` - Allocate single loan to optimal partner
+- `POST /api/batch-upload` - Upload Excel file for batch processing
+- `POST /api/batch-process/{batch_id}` - Start batch processing
+- `GET /api/batch-status/{batch_id}` - Check batch processing status
+- `GET /api/batch-download/{batch_id}` - Download results
+
+### Administration
+
+- `GET /api/partners` - List all partners
+- `POST /api/partners` - Create new partner
+- `GET /api/partnerships` - List partnerships
+- `POST /api/partnerships` - Create new partnership
+- `PUT /api/partnerships/{id}` - Update partnership
+
+## Core Mathematics
+
+The system implements these key formulas:
+
+### Blended Rate
 ```
 R_B = (w_O × R_O) + (w_L × R_L)
 ```
 
-### 2. Originator Profit
+### Originator Profit
 ```
 P_originator = (w_O × R_B) + S_O - (w_O × C_O)
 ```
 
-### 3. Lender Profit  
+### Lender Profit  
 ```
 P_lender = (w_L × R_B) - (w_L × C_L) - S_L
 ```
 
-### 4. Lender Selection Score
+### Selection Score
 ```
-Selection_Score_i = Allocated_Limit_i / Approval_Rate_i
-```
-
-## 🏗️ Project Structure
-
-```
-colending/
-├── models/                 # Data models and structures
-│   ├── loan_terms.py      # LoanTerms, CostParameters, LoanRequest
-│   ├── lender_data.py     # LenderData, SelectionScore, OptimizedTerms
-│   └── results.py         # LoanResult, ProfitCalculation, OptimizationResult
-├── calculators/           # Core calculation modules
-│   ├── rate_calculator.py # Blended rate calculations
-│   ├── profit_calculator.py # Profit calculations and optimization
-│   └── selection_calculator.py # Lender selection algorithms
-├── services/              # Business logic services
-│   └── loan_processor.py  # Main loan processing service
-├── tests/                 # Test suite
-│   └── test_calculations.py # Comprehensive tests
-└── main.py               # Demo script
+Selection_Score = Allocated_Limit / Approval_Rate
 ```
 
-## 🧪 Validation Results
+## Architecture
 
-### Test Case 1: Basic Blended Rate Calculation
-- **Input**: R_O=16.5%, R_L=14.2%, w_O=0.25, w_L=0.75
-- **Expected**: 14.775%
-- **Result**: ✅ PASS (14.775%)
+```
+app/
+├── main.py              # FastAPI application
+├── database.py          # SQLAlchemy models  
+├── models.py            # Pydantic models
+├── core/
+│   ├── math.py          # Core mathematical functions
+│   ├── allocation.py    # Main allocation logic
+│   └── excel.py         # Excel processing
+├── api/
+│   ├── allocate.py      # Allocation endpoints
+│   ├── batch.py         # Batch processing
+│   └── admin.py         # Administration
+└── utils/
+    ├── validation.py    # Input validation
+    └── helpers.py       # Utility functions
+```
 
-### Test Case 2: Profit Calculation
-- **Additional Input**: S=1.8%, C_O=9.2%, C_L=8.5%
-- **Expected Originator Profit**: 3.194%
-- **Expected Lender Profit**: 2.906%
-- **Result**: ✅ PASS (3.194%, 2.906%)
+## Example Usage
 
-### Test Case 3: Selection Algorithm Distribution
-- **Expected**: A=35.5%, B=33.3%, C=31.2% (±2% tolerance)
-- **Result**: ✅ PASS (within tolerance over 1000+ trials)
-
-### Performance Requirements
-- **Single loan processing**: <100ms ✅
-- **100+ lenders**: <100ms average ✅
-- **Mathematical accuracy**: 4 decimal places ✅
-
-## 🚀 Quick Start
-
-### 1. Basic Usage
+### Single Loan Allocation
 
 ```python
-from colending import (
-    LoanProcessor, LoanRequest, LenderData,
-    calculate_blended_rate, calculate_profits
-)
-from decimal import Decimal
+import requests
 
-# Create lenders
-lenders = [
-    LenderData(
-        lender_id='LENDER_A',
-        base_interest_rate=Decimal('0.142'),
-        approval_rate=Decimal('0.85'),
-        monthly_limit=Decimal('50000000'),
-        cost_of_funds=Decimal('0.085'),
-        allocated_limit=Decimal('3500000000')
-    )
-]
+loan_data = {
+    "loan_id": "LOAN_001",
+    "amount": 500000,
+    "tenure": 24,
+    "product_type": "PERSONAL_LOAN",
+    "orig_rate": 0.165,
+    "cibil_score": 750,
+    "foir": 0.35,
+    "ltr": 0.6
+}
 
-# Create processor
-processor = LoanProcessor(lenders)
-
-# Create loan request
-loan_request = LoanRequest(
-    originator_rate=Decimal('0.165'),
-    loan_amount=Decimal('500000'),
-    servicing_fee=Decimal('0.018'),
-    cost_of_funds=Decimal('0.092')
+response = requests.post(
+    "http://localhost:8000/api/allocate?program_id=1",
+    json=loan_data
 )
 
-# Process loan
-result = processor.process_loan_application(loan_request)
-
-print(f"Selected Lender: {result.selected_lender_id}")
-print(f"Blended Rate: {result.blended_rate:.4%}")
-print(f"Both Profitable: {result.both_profitable}")
+result = response.json()
+print(f"Recommended Partner: {result['recommended_partner']['name']}")
 ```
 
-### 2. Running the Demo
+### Batch Processing
+
+```python
+# Upload Excel file
+files = {"file": open("loans.xlsx", "rb")}
+upload_response = requests.post(
+    "http://localhost:8000/api/batch-upload?program_id=1",
+    files=files
+)
+
+batch_id = upload_response.json()["batch_id"]
+
+# Start processing
+requests.post(f"http://localhost:8000/api/batch-process/{batch_id}")
+
+# Check status
+status_response = requests.get(f"http://localhost:8000/api/batch-status/{batch_id}")
+print(f"Status: {status_response.json()['status']}")
+
+# Download results when completed
+results = requests.get(f"http://localhost:8000/api/batch-download/{batch_id}")
+```
+
+## Excel File Format
+
+For batch processing, Excel files must contain these columns:
+
+| Column | Description | Example |
+|--------|-------------|---------|
+| client_loan_id | Unique loan identifier | LOAN_001 |
+| loan_amount | Loan amount in Rs | 500000 |
+| cibil_score | CIBIL score (300-900) | 750 |
+| loan_foir | Fixed Obligation to Income Ratio | 0.35 |
+| interest_rate | Originator rate (%) | 16.5 |
+| product_type | Product type | PERSONAL_LOAN |
+| ltr | Loan to Revenue ratio (optional) | 0.6 |
+
+## Testing
+
+Run the test suite:
 
 ```bash
-# From the project root
-python3 test_colending.py
+pytest tests/ -v
 ```
 
-### 3. Running Tests
+Test coverage includes:
+- Mathematical formula validation
+- Allocation logic testing
+- Excel processing verification
+- API endpoint testing
+
+## Database Schema
+
+The system uses SQLite with these core tables:
+
+- **partners** - Lending partners information
+- **partnerships** - Co-lending arrangements
+- **programs** - Allocation strategy configurations  
+- **performance** - Historical approval data
+- **allocations** - Loan allocation records
+
+## Configuration
+
+Sample data is automatically initialized on first startup including:
+- 3 sample lenders with different characteristics
+- Co-lending partnerships with varying terms
+- Historical performance data for approval rate calculations
+
+## Performance
+
+- **Allocation Speed**: <100ms per loan (target achieved)
+- **Batch Processing**: Handles 1000+ loans efficiently
+- **Caching**: Approval rates cached by partnership and CIBIL range
+- **Database**: Optimized SQLite queries with proper indexing
+
+## Production Deployment
+
+For production deployment:
+
+1. Set environment variables for configuration
+2. Use PostgreSQL instead of SQLite for scalability
+3. Implement Redis for batch status tracking
+4. Add authentication and authorization
+5. Use background tasks for batch processing
+6. Configure proper logging and monitoring
 
 ```bash
-# From the colending directory  
-cd colending
-PYTHONPATH=.. python3 tests/test_calculations.py
+# Production server
+uvicorn app.main:app --host 0.0.0.0 --port 8000 --workers 4
 ```
 
-## 🔧 API Reference
+## Technology Stack
 
-### Core Functions
-
-#### `calculate_blended_rate(originator_rate, lender_rate, originator_weight, lender_weight)`
-Calculate blended interest rate using weighted average.
-
-#### `calculate_profits(loan_terms, cost_params)`
-Calculate profits for both originator and lender.
-
-#### `optimize_participation_ratio(...)`
-Find optimal participation ratio maximizing combined profits.
-
-#### `calculate_selection_scores(lenders_with_profits)`
-Calculate normalized selection scores for lender selection.
-
-#### `select_lender_random(selection_scores)`
-Perform weighted random lender selection.
-
-### Data Models
-
-#### `LoanTerms`
-- `originator_rate`, `lender_rate`: Interest rates
-- `originator_weight`, `lender_weight`: Participation weights
-- `loan_amount`: Total loan amount
-- `servicing_fee_rate`: Servicing fee rate
-
-#### `LenderData`
-- `lender_id`: Unique identifier
-- `base_interest_rate`: Base interest rate
-- `approval_rate`: Historical approval rate
-- `allocated_limit`: Monthly allocation limit
-- `cost_of_funds`: Cost of funds
-
-#### `LoanResult`
-- `selected_lender_id`: Selected lender
-- `blended_rate`: Final blended rate
-- `originator_profit`, `lender_profit`: Profit margins
-- `both_profitable`: Profitability status
-
-## 🎯 Key Features
-
-### 1. Mathematical Precision
-- Uses `Decimal` type for financial calculations
-- Validates against specified test cases
-- Maintains 4 decimal place accuracy
-
-### 2. Performance Optimization
-- Single loan processing in <100ms
-- Handles 100+ lenders efficiently
-- Memory efficient algorithms
-
-### 3. Robust Error Handling
-- Input validation at all levels
-- Graceful handling of edge cases
-- Comprehensive logging
-
-### 4. Production Ready
-- Clean, maintainable code structure
-- Comprehensive test suite
-- Type hints throughout
-- Detailed documentation
-
-## 🧮 Example Calculations
-
-### Blended Rate Example
-```
-R_O = 16.5%, R_L = 14.2%
-w_O = 25%, w_L = 75%
-
-R_B = (0.25 × 0.165) + (0.75 × 0.142)
-R_B = 0.04125 + 0.1065 = 0.14775 = 14.775%
-```
-
-### Profit Calculation Example
-```
-Blended Rate = 14.775%
-Servicing Fee = 1.8%
-Originator Cost = 9.2%
-Lender Cost = 8.5%
-
-Originator Profit = (0.25 × 0.14775) + 0.018 - (0.25 × 0.092)
-                  = 0.0369 + 0.018 - 0.023 = 0.03194 = 3.194%
-
-Lender Profit = (0.75 × 0.14775) - (0.75 × 0.085) - 0.018
-              = 0.1108 - 0.0638 - 0.018 = 0.02906 = 2.906%
-```
-
-## 🔍 Success Criteria Achieved
-
-- ✅ All 6 core functions implemented and tested
-- ✅ Mathematical formulas validated against requirements  
-- ✅ Test cases pass with expected results
-- ✅ Selection algorithm distribution validates over 1000+ runs
-- ✅ Both originator and lender profitability ensured
-- ✅ Clean, maintainable code structure
-- ✅ Error handling for edge cases
-- ✅ Performance benchmarks met (<100ms)
-
-## 🛠️ Technology Stack
-
-- **Python 3.7+**: Core language
-- **Decimal**: Precise financial calculations
-- **Dataclasses**: Clean data structures  
-- **Type Hints**: Code clarity and validation
-- **Logging**: Debugging and monitoring
-- **Unittest**: Comprehensive testing
-
-## 📈 Performance Metrics
-
-- **Average Processing Time**: ~0.11ms per loan
-- **Memory Usage**: Efficient for 100+ lenders
-- **Accuracy**: 4+ decimal places maintained
-- **Reliability**: Handles edge cases gracefully
+- **FastAPI**: Modern web framework for APIs
+- **SQLAlchemy**: SQL toolkit and ORM
+- **Pydantic**: Data validation using Python type hints
+- **pandas**: Excel processing and data manipulation
+- **SQLite**: Embedded database for development
+- **pytest**: Testing framework
 
 ---
 
-**Built with precision for production-ready co-lending operations** 🚀
+**Production-ready FastAPI backend for co-lending operations** 🚀
